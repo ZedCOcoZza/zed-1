@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-VERSION     = '1.0.0'
+VERSION     = '1.0.1'
 DESCRIPTION = 'Thin wrapper for integrating ZeroMQ sockets into the Twisted reactor'
 
 try:

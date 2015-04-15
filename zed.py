@@ -292,7 +292,7 @@ class ZmqRouterSocket(ZmqSocket):
 
 class ZmqDealerSocket(ZmqSocket):
     socketType = DEALER
-    writeOnly  = True
+    writeOnly  = False
 
 class ZmqPairSocket(ZmqSocket):
     socketType = PAIR
