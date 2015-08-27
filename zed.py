@@ -113,6 +113,8 @@ class ZmqSocket(object):
 
         self._ctx.reactor.addReader(self)
 
+        self.read_scheduled = None
+
         
     def _sockopt_property( i, totype=int):
         return property( lambda zs: zs._zsock.getsockopt(i),
@@ -134,6 +136,10 @@ class ZmqSocket(object):
         
         self._zsock = None
         self._ctx   = None
+
+        if self.read_scheduled is not None:
+            self.read_scheduled.cancel()
+            self.read_scheduled = None
 
 
     def __repr__(self):
@@ -188,35 +194,35 @@ class ZmqSocket(object):
 
         Part of L{IReadDescriptor}.
         """
-        if self._ctx is None:  # disconnected
-                return
-
-        while self._queue and self._zsock is not None:
-            try:
-                self._zsock.send_multipart( self._queue[0], constants.NOBLOCK )
-                self._queue.popleft()
-            except error.ZMQError as e:
-                if e.errno == constants.EAGAIN:
-                    break
-                raise e
+        if self.read_scheduled is not None:
+            if not self.read_scheduled.called:
+                self.read_scheduled.cancel()
+            self.read_scheduled = None
         
-        while not self.writeOnly and self._zsock is not None:
+        while not self.writeOnly and self._zsock is not None and self._ctx is not None:
+
+            events = self._zsock.get(constants.EVENTS)
+
+            if (events & constants.POLLIN) != constants.POLLIN:
+                return
+            
             try:
                 msg_list = self._zsock.recv_multipart( constants.NOBLOCK )
-                log.callWithLogger(self, self.messageReceived, msg_list)
             except error.ZMQError as e:
                 if e.errno == constants.EAGAIN:
-                    break
+                    continue
                 
                 # This exception can be thrown during socket closing process
-                if e.errno == 156384763 or str(e) == 'Operation cannot be accomplished in current state':
-                    break
+                #if e.errno == 156384763 or str(e) == 'Operation cannot be accomplished in current state':
+                #    break
 
                 # Seen in 3.2 for an unknown reason
-                if e.errno == 95:
-                    break
+                #if e.errno == 95:
+                #    break
 
                 raise e
+            
+            log.callWithLogger(self, self.messageReceived, msg_list)
                 
 
             
@@ -228,9 +234,12 @@ class ZmqSocket(object):
         if len(message_parts) == 1 and isinstance(message_parts[0], (list, tuple)):
             message_parts = message_parts[0]
 
-        self._queue.append( message_parts )
-            
-        self.doRead()
+        # Queue a read since touching the socket with a send sometimes causes zmq to
+        # omit triggering a read
+        if self.read_scheduled is None:
+            self.read_scheduled = reactor.callLater(0, self.doRead)
+
+        self._zsock.send_multipart( message_parts, constants.NOBLOCK )
 
 
     def connect(self, addr):
