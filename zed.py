@@ -92,7 +92,6 @@ class ZmqSocket(object):
     implements(IReadDescriptor, IFileDescriptor)
 
     socketType = None
-    writeOnly  = False
     
     def __init__(self, socketType=None):
         """
@@ -199,7 +198,7 @@ class ZmqSocket(object):
                 self.read_scheduled.cancel()
             self.read_scheduled = None
         
-        while not self.writeOnly and self._zsock is not None and self._ctx is not None:
+        while self._zsock is not None and self._ctx is not None:
 
             events = self._zsock.get(constants.EVENTS)
 
@@ -212,14 +211,6 @@ class ZmqSocket(object):
                 if e.errno == constants.EAGAIN:
                     continue
                 
-                # This exception can be thrown during socket closing process
-                #if e.errno == 156384763 or str(e) == 'Operation cannot be accomplished in current state':
-                #    break
-
-                # Seen in 3.2 for an unknown reason
-                #if e.errno == 95:
-                #    break
-
                 raise e
             
             log.callWithLogger(self, self.messageReceived, msg_list)
@@ -278,7 +269,8 @@ for k,v in _type_map.items():
 
 class ZmqPubSocket(ZmqSocket):
     socketType = PUB
-    writeOnly  = True
+    def messageReceived(self, message_parts):
+        pass
 
 class ZmqSubSocket(ZmqSocket):
     socketType = SUB
@@ -291,7 +283,8 @@ class ZmqRepSocket(ZmqSocket):
 
 class ZmqPushSocket(ZmqSocket):
     socketType = PUSH
-    writeOnly  = True
+    def messageReceived(self, message_parts):
+        pass
 
 class ZmqPullSocket(ZmqSocket):
     socketType = PULL
@@ -301,7 +294,6 @@ class ZmqRouterSocket(ZmqSocket):
 
 class ZmqDealerSocket(ZmqSocket):
     socketType = DEALER
-    writeOnly  = False
 
 class ZmqPairSocket(ZmqSocket):
     socketType = PAIR

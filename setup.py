@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-VERSION     = '1.0.2'
+VERSION     = '1.0.3'
 DESCRIPTION = 'Thin wrapper for integrating ZeroMQ sockets into the Twisted reactor'
 
 try:
@@ -20,7 +20,7 @@ Thin wrapper for integrating ZeroMQ sockets into the Twisted reactor
     url              = 'https://github.com/cocagne/zed',
     author           = "Tom Cocagne",
     author_email     = 'tom.cocagne@gmail.com',
-    install_requires = ['twisted>=14.0'],
+    install_requires = ['twisted>=14.0','pyzmq'],
     provides         = ['zed'],
     py_modules       = ['zed'],
     keywords         = ['zeromq', 'twisted'],
