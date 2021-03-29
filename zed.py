@@ -15,7 +15,7 @@ from zmq import Socket
 from zmq import Context
 from zmq import PUB, SUB, REQ, REP, PUSH, PULL, ROUTER, DEALER, PAIR
 
-from zope.interface import implements
+from zope.interface import implementer
 
 from twisted.internet.interfaces import IFileDescriptor, IReadDescriptor
 from twisted.internet import reactor
@@ -82,14 +82,14 @@ class _ZmqContext(object):
         _context = None
         
 
-
-
+@implementer(IFileDescriptor)
+@implementer(IReadDescriptor)
 class ZmqSocket(object):
     """
     Wraps a ZeroMQ socket and integrates it into the Twisted reactor
 
     """
-    implements(IReadDescriptor, IFileDescriptor)
+    #implements(IReadDescriptor, IFileDescriptor)
 
     socketType = None
     
@@ -264,7 +264,7 @@ _type_map = dict( PUB    = PUB,
                   DEALER = DEALER,
                   PAIR   = PAIR )
 
-for k,v in _type_map.items():
+for k,v in list(_type_map.items()):
     _type_map[v] = k
 
 class ZmqPubSocket(ZmqSocket):
