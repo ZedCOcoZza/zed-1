@@ -116,8 +116,13 @@ class ZmqSocket(object):
 
         
     def _sockopt_property( i, totype=int):
-        return property( lambda zs: zs._zsock.getsockopt(i),
-                         lambda zs,v: zs._zsock.setsockopt(i,totype(v)) )
+        if totype is str:
+            fget = lambda zs:   zs._zsock.getsockopt_string(i)
+            fset = lambda zs,v: zs._zsock.setsockopt_string(i,totype(v))
+        else:
+            fget = lambda zs:   zs._zsock.getsockopt(i)
+            fset = lambda zs,v: zs._zsock.setsockopt(i,totype(v))
+        return property( fget, fset )
 
     
     linger     = _sockopt_property( constants.LINGER         )
@@ -213,6 +218,11 @@ class ZmqSocket(object):
                 
                 raise e
             
+            # PY3: With Python2 version of pyzmq, `recv_multipart` returned list of strings.
+            # However, with Python3 update of pyzmq, `recv_multipart` now returns list of raw bytes.
+            # To maintain compatibility, we decode incoming bytes and return list of strings to
+            # the client as before.
+            msg_list = [m.decode() if isinstance(m, bytes) else m for m in msg_list]
             log.callWithLogger(self, self.messageReceived, msg_list)
                 
 
@@ -230,6 +240,11 @@ class ZmqSocket(object):
         if self.read_scheduled is None:
             self.read_scheduled = reactor.callLater(0, self.doRead)
 
+        # PY3: With Python2 version of pyzmq, `send_multipart` accepted a list of str or bytes
+        # and didn't have any specific distinction between the two.
+        # However, with Python3 update of pyzmq, `send_multipart` accepts only list of raw bytes.
+        # To maintain compatibility, we encode incoming strings to bytes and send it to the receiver.
+        message_parts = [m.encode() if isinstance(m, str) else m for m in message_parts]
         self._zsock.send_multipart( message_parts, constants.NOBLOCK )
 
 
