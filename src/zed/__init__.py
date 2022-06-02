@@ -217,12 +217,6 @@ class ZmqSocket(object):
                     continue
                 
                 raise e
-            
-            # PY3: With Python2 version of pyzmq, `recv_multipart` returned list of strings.
-            # However, with Python3 update of pyzmq, `recv_multipart` now returns list of raw bytes.
-            # To maintain compatibility, we decode incoming bytes and return list of strings to
-            # the client as before.
-            msg_list = [m.decode() if isinstance(m, bytes) else m for m in msg_list]
             log.callWithLogger(self, self.messageReceived, msg_list)
                 
 
